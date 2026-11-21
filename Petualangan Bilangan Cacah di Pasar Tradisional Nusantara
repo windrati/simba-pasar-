@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIMBA PASAR - Simulasi Belanja di Pasar Tradisional</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tone.js untuk efek suara & nada pelafalan angka tanpa ketergantungan TTS yang sering error -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <!-- Google Fonts: Nunito & Fredoka untuk tampilan ramah anak & edukatif -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Nunito', sans-serif;
+            background-color: #FEF9E7;
+            color: #2C3E50;
+            user-select: none;
+        }
+        h1, h2, h3, .font-display {
+            font-family: 'Fredoka', sans-serif;
+        }
+        /* Pola tenda pasar tradisional di header */
+        .market-awning {
+            background: repeating-linear-gradient(
+                90deg,
+                #D9534F,
+                #D9534F 24px,
+                #FFF8E7 24px,
+                #FFF8E7 48px
+            );
+            height: 16px;
+            border-bottom: 3px solid #B52B27;
+        }
+        /* Animasi halus */
+        @keyframes popIn {
+            0% { transform: scale(0.92); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-pop {
+            animation: popIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+        .btn-3d {
+            transition: all 0.1s ease;
+            border-bottom-width: 4px;
+        }
+        .btn-3d:active {
+            transform: translateY(2px);
+            border-bottom-width: 2px;
+        }
+        /* Uang kertas & koin realistis */
+        .banknote {
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        .banknote:hover {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.15);
+        }
+        .coin {
+            border-radius: 9999px;
+            transition: transform 0.15s ease;
+        }
+        .coin:hover {
+            transform: scale(1.08);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Top Awning Dekorasi Pasar -->
+    <div class="market-awning w-full sticky top-0 z-40"></div>
+
+    <!-- Navbar / Header Utama (Muncul setelah layar pembuka) -->
+    <header id="main-header" class="hidden bg-amber-500 text-white shadow-md sticky top-4 z-30 mx-2 sm:mx-6 mt-2 rounded-2xl border-2 border-amber-600">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-3 cursor-pointer" onclick="navigateTo('menu')">
+                <div class="bg-white text-amber-600 p-2 rounded-xl font-display font-bold text-lg shadow-inner">
+                    🏪 SIMBA PASAR
+                </div>
+                <span class="hidden md:inline text-sm font-bold text-amber-100">Matematika Kelas 5 • Bilangan Cacah s.d. 100.000</span>
+            </div>
+            
+            <!-- Navigasi Non-Linear (Revisi Poin 8) -->
+            <nav class="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                <button onclick="navigateTo('menu')" class="nav-btn px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-xs sm:text-sm font-bold transition">🏠 Menu Utama</button>
+                <button onclick="navigateTo('guide')" class="nav-btn px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-xs sm:text-sm font-bold transition">📖 Petunjuk & Tujuan</button>
+                <button onclick="navigateTo('materi')" class="nav-btn px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-xs sm:text-sm font-bold transition">📚 Materi</button>
+                <button onclick="navigateTo('kasir')" class="nav-btn px-3 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-xs sm:text-sm font-bold transition">🛒 Latihan Kasir</button>
+                <button onclick="navigateTo('kuis')" class="nav-btn px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-xs sm:text-sm font-bold transition">📝 Kuis (10 Soal)</button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Notifikasi / Toast Message (Pengganti alert() sesuai standar) -->
+    <div id="toast-box" class="fixed bottom-5 right-5 z-50 max-w-sm hidden animate-pop">
+        <div id="toast-content" class="bg-rose-600 text-white px-5 py-4 rounded-2xl shadow-2xl border-2 border-white flex items-start gap-3">
+            <span id="toast-icon" class="text-2xl">⚠️</span>
+            <div>
+                <h4 id="toast-title" class="font-bold text-base">Peringatan</h4>
+                <p id="toast-msg" class="text-sm text-rose-100 mt-0.5">Pesan notifikasi.</p>
+            </div>
+            <button onclick="hideToast()" class="ml-auto text-white/80 hover:text-white font-bold">✕</button>
+        </div>
+    </div>
+
+    <!-- KONTEN UTAMA -->
+    <main class="flex-grow max-w-6xl w-full mx-auto px-4 py-6">
+
+        <!-- =========================================================
+             HALAMAN 0: LAYAR PEMBUKA (SPLASH SCREEN)
+        ========================================================= -->
+        <section id="view-splash" class="min-h-[80vh] flex flex-col items-center justify-center text-center animate-pop">
+            <div class="bg-white p-6 sm:p-10 rounded-3xl shadow-xl border-4 border-amber-400 max-w-2xl w-full relative overflow-hidden">
+                <div class="inline-block bg-amber-100 text-amber-800 font-bold px-4 py-1.5 rounded-full text-sm mb-4 border border-amber-300">
+                    Media Pembelajaran Interaktif Berbasis Etnomatematika
+                </div>
+                
+                <!-- Ilustrasi SVG Pasar Tradisional (Bukan Emoji Polos - Revisi Poin 5) -->
+                <div class="w-48 h-36 mx-auto mb-4">
+                    <svg viewBox="0 0 240 160" class="w-full h-full drop-shadow">
+                        <!-- Latar langit & kios -->
+                        <rect x="20" y="55" width="200" height="90" rx="10" fill="#FDE68A" stroke="#D97706" stroke-width="3"/>
+                        <!-- Atap Tenda -->
+                        <path d="M10 55 L35 20 L205 20 L230 55 Z" fill="#EF4444" stroke="#B91C1C" stroke-width="3"/>
+                        <path d="M45 20 L35 55 L75 55 L80 20 Z" fill="#FFFFFF"/>
+                        <path d="M115 20 L110 55 L150 55 L145 20 Z" fill="#FFFFFF"/>
+                        <path d="M180 20 L185 55 L215 55 L200 20 Z" fill="#FFFFFF"/>
+                        <!-- Meja Dagangan -->
+                        <rect x="30" y="95" width="180" height="45" rx="6" fill="#B45309" stroke="#78350F" stroke-width="3"/>
+                        <!-- Keranjang Sayur & Buah -->
+                        <circle cx="65" cy="88" r="14" fill="#16A34A"/>
+                        <circle cx="80" cy="86" r="12" fill="#22C55E"/>
+                        <circle cx="120" cy="88" r="14" fill="#DC2626"/>
+                        <circle cx="135" cy="87" r="11" fill="#F97316"/>
+                        <rect x="160" y="75" width="35" height="20" rx="4" fill="#FEF3C7" stroke="#D97706" stroke-width="2"/>
+                        <text x="177" y="89" font-size="9" font-weight="bold" text-anchor="middle" fill="#92400E">BERAS</text>
+                        <!-- Papan Nama -->
+                        <rect x="75" y="105" width="90" height="24" rx="5" fill="#FEF08A" stroke="#CA8A04" stroke-width="2"/>
+                        <text x="120" y="121" font-size="11" font-weight="bold" text-anchor="middle" fill="#854D0E">PASAR RAKYAT</text>
+                    </svg>
+                </div>
+
+                <h1 class="text-4xl sm:text-5xl font-extrabold text-amber-600 tracking-tight mb-2">
+                    SIMBA PASAR
+                </h1>
+                <p class="text-lg sm:text-xl font-bold text-slate-700 mb-3">
+                    Simulasi Belanja di Pasar Tradisional
+                </p>
+                <p class="text-slate-600 text-sm sm:text-base mb-8 max-w-lg mx-auto">
+                    Belajar membaca, menulis, menentukan nilai tempat, membandingkan, serta menghitung transaksi uang Rupiah hingga <strong>Rp99.999</strong> (Bilangan Cacah s.d. 100.000).
+                </p>
+
+                <button onclick="startApp()" class="btn-3d bg-emerald-500 hover:bg-emerald-600 border-emerald-700 text-white font-display text-xl px-8 py-4 rounded-2xl shadow-lg w-full sm:w-auto">
+                    Mulai Belajar Sekarang 🚀
+                </button>
+            </div>
+        </section>
+
+        <!-- =========================================================
+             HALAMAN 1: PETUNJUK PENGGUNAAN & TUJUAN PEMBELAJARAN (Revisi Poin 7 & 11)
+        ========================================================= -->
+        <section id="view-guide" class="hidden animate-pop space-y-6">
+            <div class="bg-white rounded-3xl p-6 sm:p-8 shadow-lg border-2 border-amber-300">
+                <div class="flex flex-wrap items-center justify-between gap-4 border-b-2 border-amber-100 pb-4 mb-6">
+                    <div>
+                        <h2 class="text-2xl sm:text-3xl font-bold text-amber-700">📖 Petunjuk Penggunaan & Tujuan Pembelajaran</h2>
+                        <p class="text-slate-600 text-sm">Pahami alur belajar dan fungsi setiap tombol sebelum memulai aktivitas.</p>
+                    </div>
+                    <button onclick="navigateTo('menu')" class="btn-3d bg-amber-500 hover:bg-amber-600 border-amber-700 text-white font-bold px-5 py-2.5 rounded-xl">
+                        Lanjut ke Menu Utama ➡️
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Tujuan Pembelajaran & Rasional Batas 100.000 (Revisi Poin 7 & 11) -->
+                    <div class="bg-emerald-50 p-5 rounded-2xl border-2 border-emerald-200 space-y-3">
+                        <h3 class="text-xl font-bold text-emerald-800 flex items-center gap-2">
+                            🎯 Tujuan Pembelajaran (Kelas 5)
+                        </h3>
+                        <ul class="space-y-2 text-sm text-slate-700 list-disc pl-5">
+                            <li>Siswa mampu <strong>membaca dan menulis</strong> lambang bilangan cacah sampai 100.000 dengan tepat.</li>
+                            <li>Siswa mampu menentukan <strong>nilai tempat</strong> (puluh ribuan, ribuan, ratusan, puluhan, satuan) dari harga barang.</li>
+                            <li>Siswa mampu <strong>membandingkan dan mengurutkan</strong> harga barang menggunakan konsep etnomatematika pasar tradisional (satuan ikat, liter, kg, kodi, lusin, dan tawar-menawar).</li>
+                            <li>Siswa mampu menyelesaikan operasi hitung penjumlahan dan pengurangan uang kembalian pada simulasi kasir.</li>
+                        </ul>
+                        <div class="bg-white p-3.5 rounded-xl border border-emerald-300 text-xs text-slate-600">
+                            <strong class="text-emerald-700 block mb-1">📌 Rasional Batas Belanja Maksimal Rp99.999 (ATP Kelas 5):</strong>
+                            Sesuai Capaian Pembelajaran Fase C (Kelas 5), fokus utama adalah penguasaan nilai tempat <strong>5 digit (puluh ribuan hingga satuan)</strong> pada bilangan cacah sampai 100.000. Oleh karena itu, total belanja dibatasi maksimal <strong>Rp99.999</strong> agar siswa berlatih membaca 5 nilai tempat secara utuh dan menghindari kembalian negatif.
+                        </div>
+                    </div>
+
+                    <!-- Alur Belajar & Fungsi Tombol -->
+                    <div class="bg-sky-50 p-5 rounded-2xl border-2 border-sky-200 space-y-3">
+                        <h3 class="text-xl font-bold text-sky-800 flex items-center gap-2">
+                            🧭 Alur Belajar & Fungsi Tombol
+                        </h3>
+                        <p class="text-sm text-slate-700">
+                            Media ini bersifat <strong>fleksibel (non-linear)</strong>. Kamu bebas memilih menu sesuai kebutuhan pemahamanmu:
+                        </p>
+                        <div class="space-y-2.5 text-sm">
+                            <div class="bg-white p-3 rounded-xl border border-sky-200 flex items-start gap-3">
+                                <span class="bg-emerald-500 text-white font-bold px-2.5 py-1 rounded-lg text-xs shrink-0">📚 Materi</span>
+                                <p class="text-slate-600">Belajar membaca/menulis bilangan bertahap, nilai tempat 5 digit, audio pelafalan, serta mengenal satuan khas pasar (ikat, liter, lusin, kodi).</p>
+                            </div>
+                            <div class="bg-white p-3 rounded-xl border border-sky-200 flex items-start gap-3">
+                                <span class="bg-sky-500 text-white font-bold px-2.5 py-1 rounded-lg text-xs shrink-0">🛒 Kasir</span>
+                                <p class="text-slate-600">Praktik menjadi kasir pasar! Menjumlahkan belanjaan (maks. Rp99.999), melakukan <strong>tawar-menawar</strong>, memecah nilai tempat, dan menghitung kembalian.</p>
+                            </div>
+                            <div class="bg-white p-3 rounded-xl border border-sky-200 flex items-start gap-3">
+                                <span class="bg-purple-500 text-white font-bold px-2.5 py-1 rounded-lg text-xs shrink-0">📝 Kuis</span>
+                                <p class="text-slate-600">Mengerjakan <strong>10 soal evaluasi</strong> lengkap dengan pembahasan mendetail di setiap nomor (baik jawaban benar maupun salah).</p>
+                            </div>
+                            <div class="bg-white p-3 rounded-xl border border-sky-200 flex items-start gap-3">
+                                <span class="bg-amber-500 text-white font-bold px-2.5 py-1 rounded-lg text-xs shrink-0">🔊 Audio</span>
+                                <p class="text-slate-600">Tekan tombol speaker pada contoh bilangan untuk mendengarkan pelafalan angka yang jernih dan terukur.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- =========================================================
+             HALAMAN 2: MENU UTAMA NON-LINEAR (Revisi Poin 8)
+        ========================================================= -->
+        <section id="view-menu" class="hidden animate-pop space-y-6">
+            <div class="text-center max-w-2xl mx-auto">
+                <h2 class="text-3xl font-bold text-amber-800">Pilih Aktivitas Belajarmu</h2>
+                <p class="text-slate-600 mt-1">Kamu bisa langsung memilih menu mana saja sesuai dengan pemahamanmu hari ini!</p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                <!-- Kartu 1: Petunjuk & Tujuan -->
+                <div onclick="navigateTo('guide')" class="cursor-pointer bg-white hover:bg-amber-50 rounded-3xl p-6 shadow-md hover:shadow-xl border-2 border-amber-300 transition flex flex-col justify-between">
+                    <div>
+                        <div class="w-14 h-14 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center text-3xl mb-4 font-bold">📖</div>
+                        <h3 class="text-xl font-bold text-slate-800 mb-2">1. Petunjuk & Tujuan</h3>
+                        <p class="text-sm text-slate-600">Baca tujuan pembelajaran, fungsi tombol, dan panduan penggunaan media.</p>
+                    </div>
+                    <span class="mt-5 inline-block text-amber-600 font-bold text-sm">Buka Panduan →</span>
+                </div>
+
+                <!-- Kartu 2: Materi & Etnomatematika -->
+                <div onclick="navigateTo('materi')" class="cursor-pointer bg-white hover:bg-emerald-50 rounded-3xl p-6 shadow-md hover:shadow-xl border-2 border-emerald-400 transition flex flex-col justify-between">
+                    <div>
+                        <div class="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center text-3xl mb-4 font-bold">📚</div>
+                        <h3 class="text-xl font-bold text-slate-800 mb-2">2. Materi & Latihan</h3>
+                        <p class="text-sm text-slate-600">Membaca & menulis lambang bilangan bertahap, nilai tempat, dan satuan pasar tradisional.</p>
+                    </div>
+                    <span class="mt-5 inline-block text-emerald-600 font-bold text-sm">Pelajari Materi →</span>
+                </div>
+
+                <!-- Kartu 3: Simulasi Kasir Pasar -->
+                <div onclick="navigateTo('kasir')" class="cursor-pointer bg-white hover:bg-sky-50 rounded-3xl p-6 shadow-md hover:shadow-xl border-2 border-sky-400 transition flex flex-col justify-between">
+                    <div>
+                        <div class="w-14 h-14 bg-sky-100 text-sky-600 rounded-2xl flex items-center justify-center text-3xl mb-4 font-bold">🛒</div>
+                        <h3 class="text-xl font-bold text-slate-800 mb-2">3. Latihan Kasir Pasar</h3>
+                        <p class="text-sm text-slate-600">Simulasi jual-beli nyata! Ada fitur tawar-menawar, uang Rupiah asli, dan batas Rp99.999.</p>
+                    </div>
+                    <span class="mt-5 inline-block text-sky-600 font-bold text-sm">Mainkan Kasir →</span>
+                </div>
+
+                <!-- Kartu 4: Kuis Evaluasi 10 Soal -->
+                <div onclick="navigateTo('kuis')" class="cursor-pointer bg-white hover:bg-purple-50 rounded-3xl p-6 shadow-md hover:shadow-xl border-2 border-purple-400 transition flex flex-col justify-between">
+                    <div>
+                        <div class="w-14 h-14 bg-purple-100 text-purple-600 rounded-2xl flex items-center justify-center text-3xl mb-4 font-bold">📝</div>
+                        <h3 class="text-xl font-bold text-slate-800 mb-2">4. Kuis Evaluasi</h3>
+                        <p class="text-sm text-slate-600">10 soal lengkap sesuai kisi-kisi dengan pembahasan di setiap nomor.</p>
+                    </div>
+                    <span class="mt-5 inline-block text-purple-600 font-bold text-sm">Kerjakan Kuis →</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- =========================================================
+             HALAMAN 3: MATERI, ETNOMATEMATIKA & LATIHAN BERTAHAP (Revisi Poin 2, 10, 13)
+        ========================================================= -->
+        <section id="view-materi" class="hidden animate-pop space-y-6">
+            <div class="bg-white rounded-3xl p-6 sm:p-8 shadow-lg border-2 border-emerald-300">
+                <h2 class="text-2xl sm:text-3xl font-bold text-emerald-800 mb-2">📚 Materi Etnomatematika Pasar Tradisional</h2>
+                <p class="text-slate-600 text-sm mb-6">Pelajari konsep bilangan cacah sampai 100.000 melalui aktivitas jual beli dan satuan tradisional di pasar.</p>
+
+                <!-- Tab Sub-Materi -->
+                <div class="flex flex-wrap gap-2 mb-6 border-b pb-4">
+                    <button onclick="switchMateriTab('tab-bilangan')" id="btn-tab-bilangan" class="materi-tab px-4 py-2 rounded-xl font-bold text-sm bg-emerald-600 text-white">1. Membaca & Nilai Tempat</button>
+                    <button onclick="switchMateriTab('tab-etno')" id="btn-tab-etno" class="materi-tab px-4 py-2 rounded-xl font-bold text-sm bg-emerald-100 text-emerald-800 hover:bg-emerald-200">2. Satuan Khas Pasar (Etnomatematika)</button>
+                    <button onclick="switchMateriTab('tab-latihan-bertahap')" id="btn-tab-latihan-bertahap" class="materi-tab px-4 py-2 rounded-xl font-bold text-sm bg-emerald-100 text-emerald-800 hover:bg-emerald-200">3. Latihan Bertahap Menulis Bilangan</button>
+                </div>
+
+                <!-- TAB 1: MEMBACA, NILAI TEMPAT & AUDIO REKAMAN/SINTESIS TERUKUR (Revisi Poin 10 & 13) -->
+                <div id="tab-bilangan" class="materi-panel space-y-6">
+                    <div class="bg-amber-50 p-5 rounded-2xl border border-amber-200">
+                        <h3 class="font-bold text-lg text-amber-900 mb-2">🔊 Contoh Membaca Harga & Nilai Tempat 5 Digit</h3>
+                        <p class="text-sm text-slate-700 mb-4">Klik tombol <strong>Dengarkan Suara</strong> pada setiap kartu harga untuk mendengar pelafalan bilangan dengan jelas (menggunakan audio terkalibrasi tanpa bergantung pada TTS peramban yang sering bisu).</p>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="contoh-bilangan-container">
+                            <!-- Diisi via JS agar interaktif -->
+                        </div>
+                    </div>
+
+                    <!-- Tabel Nilai Tempat Interaktif -->
+                    <div class="bg-white p-5 rounded-2xl border-2 border-slate-200">
+                        <h3 class="font-bold text-lg text-slate-800 mb-3">🔍 Bedah Nilai Tempat Harga Barang</h3>
+                        <div class="flex flex-wrap items-center gap-3 mb-4">
+                            <span class="text-sm font-bold text-slate-600">Pilih Contoh Harga:</span>
+                            <button onclick="showNilaiTempat(47850)" class="px-3 py-1.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold rounded-lg text-sm">Rp47.850</button>
+                            <button onclick="showNilaiTempat(95204)" class="px-3 py-1.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold rounded-lg text-sm">Rp95.204</button>
+                            <button onclick="showNilaiTempat(68500)" class="px-3 py-1.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold rounded-lg text-sm">Rp68.500</button>
+                            <button onclick="showNilaiTempat(80450)" class="px-3 py-1.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold rounded-lg text-sm">Rp80.450</button>
+                        </div>
+
+                        <div id="nilai-tempat-display" class="grid grid-cols-5 gap-2 text-center">
+                            <!-- Diisi via JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 2: UNSUR ETNOMATEMATIKA PASAR TRADISIONAL (Revisi Poin 2 & 6) -->
+                <div id="tab-etno" class="materi-panel hidden space-y-5">
+                    <div class="bg-amber-50 p-5 rounded-2xl border border-amber-200">
+                        <h3 class="font-bold text-xl text-amber-900 mb-2">🧺 Satuan Takaran & Hitungan Khas Pasar Tradisional</h3>
+                        <p class="text-sm text-slate-700">Di pasar tradisional Indonesia, pedagang tidak hanya menggunakan kilogram, tetapi juga satuan kelompok berbasis budaya lokal (etnomatematika). Memahami satuan ini membantu kita membandingkan harga secara adil!</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div class="bg-white p-4 rounded-2xl border-2 border-emerald-200 shadow-sm">
+                            <div class="text-2xl font-bold text-emerald-700 mb-1">1 Ikat</div>
+                            <p class="text-xs font-bold text-slate-500 uppercase mb-2">Sayuran (Kangkung, Bayam, Kacang Panjang)</p>
+                            <p class="text-sm text-slate-700">Kumpulan sayuran yang diikat tali bambu/rafia. Contoh: 1 ikat bayam Rp3.500. Jika beli 3 ikat = <strong>Rp10.500</strong>.</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-2xl border-2 border-sky-200 shadow-sm">
+                            <div class="text-2xl font-bold text-sky-700 mb-1">1 Liter / Takar</div>
+                            <p class="text-xs font-bold text-slate-500 uppercase mb-2">Beras & Kacang-kacangan</p>
+                            <p class="text-sm text-slate-700">Takaran volume tradisional berbentuk kaleng silinder. 1 liter beras ≈ 0,8 kg. Contoh: 1 liter beras Rp12.500.</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-2xl border-2 border-amber-200 shadow-sm">
+                            <div class="text-2xl font-bold text-amber-700 mb-1">1 Lusin = 12 Buah</div>
+                            <p class="text-xs font-bold text-slate-500 uppercase mb-2">Peralatan Dapur & Gelas</p>
+                            <p class="text-sm text-slate-700">Jika 1 lusin gelas plastik harganya Rp24.000, maka harga 1 buah gelas adalah Rp24.000 ÷ 12 = <strong>Rp2.000</strong>.</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-2xl border-2 border-purple-200 shadow-sm">
+                            <div class="text-2xl font-bold text-purple-700 mb-1">1 Kodi = 20 Helai</div>
+                            <p class="text-xs font-bold text-slate-500 uppercase mb-2">Kain Batik, Sarung & Pakaian</p>
+                            <p class="text-sm text-slate-700">Satuan grosir tekstil di pasar. Setengah kodi = 10 helai. Jika 1 helai sapu tangan Rp4.500, maka 1 kodi = <strong>Rp90.000</strong>.</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-emerald-50 p-5 rounded-2xl border border-emerald-200">
+                        <h4 class="font-bold text-emerald-900 mb-1">🤝 Budaya Tawar-Menawar (Negosiasi Harga)</h4>
+                        <p class="text-sm text-slate-700">Ciri khas utama pasar tradisional adalah interaksi sosial tawar-menawar antara pembeli dan penjual untuk mencapai harga kesepakatan (pengurangan harga wajar, misalnya potongan Rp1.000 s.d. Rp3.000). Kamu bisa mempraktikkannya langsung di menu <strong>Latihan Kasir</strong>!</p>
+                    </div>
+                </div>
+
+                <!-- TAB 3: LATIHAN BERTAHAP MEMBACA & MENULIS LAMBANG BILANGAN (Revisi Poin 10) -->
+                <div id="tab-latihan-bertahap" class="materi-panel hidden space-y-6">
+                    <div class="bg-sky-50 p-5 rounded-2xl border border-sky-200">
+                        <h3 class="font-bold text-lg text-sky-900 mb-1">✍️ Latihan Bertahap: Menulis Lambang Bilangan & Nilai Tempat</h3>
+                        <p class="text-sm text-slate-700">Kerjakan 3 tahap latihan di bawah ini secara berurutan untuk menguji pemahamanmu sebelum masuk ke Simulasi Kasir.</p>
+                    </div>
+
+                    <!-- Tahap 1: Menulis Lambang Bilangan dari Kata -->
+                    <div class="bg-white p-5 rounded-2xl border-2 border-slate-200 space-y-4">
+                        <span class="bg-amber-100 text-amber-800 font-bold text-xs px-3 py-1 rounded-full">TAHAP 1 • Menulis Lambang Bilangan dari Nama Bilangan</span>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="p-4 bg-slate-50 rounded-xl border">
+                                <p class="text-sm font-bold text-slate-700 mb-2">1. Tuliskan lambang bilangan dari: <br><span class="text-emerald-700">"Enam puluh empat ribu lima ratus"</span></p>
+                                <div class="flex gap-2">
+                                    <input type="number" id="latihan1-input" placeholder="Contoh: 12345" class="w-full px-3 py-2 border rounded-xl text-sm font-bold">
+                                    <button onclick="cekLatihanBertahap(1, 64500)" class="bg-emerald-600 text-white px-4 py-2 rounded-xl font-bold text-sm">Cek</button>
+                                </div>
+                                <p id="latihan1-feedback" class="text-xs font-bold mt-2"></p>
+                            </div>
+
+                            <div class="p-4 bg-slate-50 rounded-xl border">
+                                <p class="text-sm font-bold text-slate-700 mb-2">2. Tuliskan lambang bilangan dari: <br><span class="text-emerald-700">"Delapan puluh sembilan ribu tujuh puluh lima"</span></p>
+                                <div class="flex gap-2">
+                                    <input type="number" id="latihan2-input" placeholder="Contoh: 12345" class="w-full px-3 py-2 border rounded-xl text-sm font-bold">
+                                    <button onclick="cekLatihanBertahap(2, 89075)" class="bg-emerald-600 text-white px-4 py-2 rounded-xl font-bold text-sm">Cek</button>
+                                </div>
+                                <p id="latihan2-feedback" class="text-xs font-bold mt-2"></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tahap 2: Menyusun Bilangan dari Nilai Tempat -->
+                    <div class="bg-white p-5 rounded-2xl border-2 border-slate-200 space-y-4">
+                        <span class="bg-purple-100 text-purple-800 font-bold text-xs px-3 py-1 rounded-full">TAHAP 2 • Menyusun Bilangan dari Nilai Tempat</span>
+                        <div class="p-4 bg-slate-50 rounded-xl border">
+                            <p class="text-sm font-bold text-slate-700 mb-2">3. Harga 1 kg daging ayam kampung terdiri dari: <strong>4 puluh ribuan + 3 ribuan + 0 ratusan + 5 puluhan + 0 satuan</strong>. Berapa harga ayam tersebut?</p>
+                            <div class="flex flex-wrap gap-2">
+                                <input type="number" id="latihan3-input" placeholder="Masukkan angka tanpa titik..." class="flex-grow px-3 py-2 border rounded-xl text-sm font-bold">
+                                <button onclick="cekLatihanBertahap(3, 43050)" class="bg-purple-600 text-white px-4 py-2 rounded-xl font-bold text-sm">Cek Jawaban</button>
+                            </div>
+                            <p id="latihan3-feedback" class="text-xs font-bold mt-2"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- =========================================================
+             HALAMAN 4: SIMULASI KASIR PASAR (Revisi Poin 1, 2, 5, 6, 9)
+        ========================================================= -->
+        <section id="view-kasir" class="hidden animate-pop space-y-6">
+            <!-- Header Status Misi Kasir -->
+            <div class="bg-white rounded-3xl p-5 shadow-md border-2 border-sky-300 flex flex-wrap items-center justify-between gap-4">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="bg-sky-100 text-sky-800 font-bold text-xs px-3 py-1 rounded-full">SIMULASI ETNOMATEMATIKA</span>
+                        <span class="bg-rose-100 text-rose-700 font-bold text-xs px-3 py-1 rounded-full">Batas Maksimal: Rp99.999</span>
+                    </div>
+                    <h2 class="text-2xl font-bold text-slate-800 mt-1">🛒 Kasir Pasar Tradisional</h2>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="bg-amber-50 px-4 py-2 rounded-2xl border border-amber-300 text-right">
+                        <span class="text-xs text-slate-500 block font-bold">Transaksi Selesai</span>
+                        <span id="kasir-score" class="text-xl font-extrabold text-amber-600">0 Misi</span>
+                    </div>
+                    <button onclick="resetKasirCart()" class="btn-3d bg-slate-200 hover:bg-slate-300 border-slate-400 text-slate-800 font-bold px-4 py-2.5 rounded-xl text-sm">
+                        🔄 Kosongkan Keranjang
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <!-- KOLOM KIRI: ETALASE BARANG PASAR BERSATUAN & ILUSTRASI SVG (Revisi Poin 5 & 6) -->
+                <div class="lg:col-span-7 bg-white rounded-3xl p-5 shadow-md border-2 border-amber-200">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-bold text-lg text-amber-900">🏪 Pilih Barang Dagangan (Semua Bersatuan)</h3>
+                        <span class="text-xs font-bold text-slate-500">Klik barang untuk masuk keranjang</span>
+                    </div>
+                    
+                    <div id="catalog-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        <!-- Diisi otomatis dari array produk bersatuan & SVG custom -->
+                    </div>
+                </div>
+
+                <!-- KOLOM KANAN: KERANJANG, TAWAR-MENAWAR, NILAI TEMPAT & PEMBAYARAN (Revisi Poin 1, 2, 5, 9) -->
+                <div class="lg:col-span-5 space-y-4">
+                    <!-- Keranjang Belanja -->
+                    <div class="bg-white rounded-3xl p-5 shadow-md border-2 border-emerald-300">
+                        <h3 class="font-bold text-lg text-emerald-900 mb-3 flex items-center justify-between">
+                            <span>🧺 Keranjang Belanja</span>
+                            <span id="budget-indicator" class="text-xs bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-full">Aman (≤ Rp99.999)</span>
+                        </h3>
+
+                        <!-- Daftar Item -->
+                        <div id="cart-items" class="space-y-2 max-h-48 overflow-y-auto pr-1 mb-4">
+                            <p class="text-sm text-slate-400 text-center py-6 italic">Keranjang masih kosong. Pilih barang di samping!</p>
+                        </div>
+
+                        <!-- Fitur Tawar-Menawar Etnomatematika (Revisi Poin 2) -->
+                        <div id="bargain-box" class="hidden bg-amber-50 p-3.5 rounded-2xl border border-amber-300 mb-4">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <span class="text-xs font-bold text-amber-800 block">🤝 Praktik Tawar-Menawar Pasar</span>
+                                    <p id="bargain-desc" class="text-xs text-slate-600">Tawar harga agar lebih hemat sebelum membayar!</p>
+                                </div>
+                                <button id="btn-bargain" onclick="applyBargain()" class="btn-3d bg-amber-500 hover:bg-amber-600 border-amber-700 text-white font-bold text-xs px-3 py-2 rounded-xl shrink-0">
+                                    Tawar Harga!
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Total Belanja -->
+                        <div class="bg-slate-900 text-white p-4 rounded-2xl flex items-center justify-between">
+                            <div>
+                                <span class="text-xs text-slate-400 block">Total yang Harus Dibayar:</span>
+                                <span id="cart-total-words" class="text-xs text-amber-300 italic">Nol rupiah</span>
+                            </div>
+                            <span id="cart-total" class="text-2xl sm:text-3xl font-extrabold text-emerald-400">Rp0</span>
+                        </div>
+                    </div>
+
+                    <!-- Panel Proses Kasir: Nilai Tempat & Uang Pembeli Variatif -->
+                    <div id="checkout-panel" class="hidden bg-white rounded-3xl p-5 shadow-md border-2 border-purple-300 space-y-4">
+                        <!-- Langkah 1: Verifikasi Nilai Tempat 5 Digit -->
+                        <div>
+                            <h4 class="font-bold text-sm text-purple-900 mb-2">1️⃣ Pecah Nilai Tempat Total Belanja (5 Digit):</h4>
+                            <div class="grid grid-cols-5 gap-1.5 text-center">
+                                <div>
+                                    <label class="text-[10px] font-bold text-slate-500 block">Puluh Ribuan</label>
+                                    <input type="number" id="nt-pr" min="0" max="9" class="w-full text-center font-bold border-2 border-purple-200 rounded-lg py-1.5 text-sm" placeholder="0">
+                                </div>
+                                <div>
+                                    <label class="text-[10px] font-bold text-slate-500 block">Ribuan</label>
+                                    <input type="number" id="nt-r" min="0" max="9" class="w-full text-center font-bold border-2 border-purple-200 rounded-lg py-1.5 text-sm" placeholder="0">
+                                </div>
+                                <div>
+                                    <label class="text-[10px] font-bold text-slate-500 block">Ratusan</label>
+                                    <input type="number" id="nt-rt" min="0" max="9" class="w-full text-center font-bold border-2 border-purple-200 rounded-lg py-1.5 text-sm" placeholder="0">
+                                </div>
+                                <div>
+                                    <label class="text-[10px] font-bold text-slate-500 block">Puluhan</label>
+                                    <input type="number" id="nt-p" min="0" max="9" class="w-full text-center font-bold border-2 border-purple-200 rounded-lg py-1.5 text-sm" placeholder="0">
+                                </div>
+                                <div>
+                                    <label class="text-[10px] font-bold text-slate-500 block">Satuan</label>
+                                    <input type="number" id="nt-s" min="0" max="9" class="w-full text-center font-bold border-2 border-purple-200 rounded-lg py-1.5 text-sm" placeholder="0">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Langkah 2: Uang Pembeli Variatif (Revisi Poin 5 & 9) -->
+                        <div class="bg-sky-50 p-3.5 rounded-2xl border border-sky-200">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-xs font-bold text-sky-900">2️⃣ Uang yang Diberikan Pembeli:</span>
+                                <span id="buyer-cash-total" class="font-extrabold text-sky-700 text-base">Rp0</span>
+                            </div>
+                            <!-- Visual Pecahan Uang Rupiah Realistis -->
+                            <div id="buyer-cash-visuals" class="flex flex-wrap gap-2 items-center">
+                                <!-- Diisi SVG uang kertas/koin sesuai nominal -->
+                            </div>
+                        </div>
+
+                        <!-- Langkah 3: Input Kembalian -->
+                        <div>
+                            <label class="text-xs font-bold text-slate-700 block mb-1">3️⃣ Hitung Uang Kembalian Pembeli (Rp):</label>
+                            <div class="flex gap-2">
+                                <input type="number" id="change-input" placeholder="Masukkan nominal kembalian..." class="w-full px-3 py-2.5 border-2 border-emerald-300 rounded-xl font-bold text-base">
+                                <button onclick="verifyTransaction()" class="btn-3d bg-emerald-600 hover:bg-emerald-700 border-emerald-800 text-white font-bold px-5 py-2.5 rounded-xl shrink-0">
+                                    Selesaikan ✅
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- =========================================================
+             HALAMAN 5: KUIS EVALUASI 10 SOAL + PEMBAHASAN (Revisi Poin 3 & 4)
+        ========================================================= -->
+        <section id="view-kuis" class="hidden animate-pop max-w-3xl mx-auto">
+            <div class="bg-white rounded-3xl p-6 sm:p-8 shadow-xl border-2 border-purple-300">
+                <!-- Header Kuis -->
+                <div class="flex flex-wrap items-center justify-between gap-2 border-b-2 border-purple-100 pb-4 mb-6">
+                    <div>
+                        <span class="bg-purple-100 text-purple-800 font-bold text-xs px-3 py-1 rounded-full">EVALUASI PEMAHAMAN (10 SOAL)</span>
+                        <h2 class="text-2xl font-bold text-slate-800 mt-1" id="quiz-progress-title">Soal 1 dari 10</h2>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-xs text-slate-500 block font-bold">Skor Sementara</span>
+                        <span id="quiz-score-badge" class="text-xl font-extrabold text-purple-600">0 / 100</span>
+                    </div>
+                </div>
+
+                <!-- Area Soal -->
+                <div id="quiz-body" class="space-y-5">
+                    <div class="bg-purple-50/70 p-4 rounded-2xl border border-purple-200">
+                        <span id="quiz-indicator" class="text-xs font-bold text-purple-700 uppercase block mb-1">Kisi-kisi: Membaca Bilangan</span>
+                        <p id="quiz-question" class="text-base sm:text-lg font-bold text-slate-800 leading-relaxed">
+                            Memuat pertanyaan...
+                        </p>
+                    </div>
+
+                    <!-- Opsi Jawaban (Sudah divalidasi hanya 1 jawaban benar - Revisi Poin 3) -->
+                    <div id="quiz-options" class="space-y-2.5">
+                        <!-- Diisi via JS -->
+                    </div>
+
+                    <!-- Kotak Umpan Balik & Pembahasan (Bertahan sampai siswa klik "Lanjut" - Revisi Poin 4) -->
+                    <div id="quiz-feedback-box" class="hidden p-5 rounded-2xl border-2 space-y-3 animate-pop">
+                        <div class="flex items-center gap-2">
+                            <span id="quiz-feedback-icon" class="text-2xl">✅</span>
+                            <h4 id="quiz-feedback-status" class="font-bold text-lg">Jawaban Benar!</h4>
+                        </div>
+                        <div class="bg-white/80 p-3.5 rounded-xl text-sm text-slate-700">
+                            <strong class="block text-slate-900 mb-1">💡 Pembahasan:</strong>
+                            <p id="quiz-explanation">Penjelasan soal...</p>
+                        </div>
+                        <div class="flex justify-end pt-2">
+                            <button onclick="nextQuizQuestion()" id="btn-quiz-next" class="btn-3d bg-purple-600 hover:bg-purple-700 border-purple-800 text-white font-bold px-6 py-2.5 rounded-xl">
+                                Lanjut ke Soal Berikutnya ➡️
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Layar Hasil Akhir Kuis -->
+                <div id="quiz-result" class="hidden text-center py-6 space-y-5 animate-pop">
+                    <div class="w-24 h-24 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center text-5xl mx-auto font-bold shadow-inner">
+                        🏆
+                    </div>
+                    <div>
+                        <h3 class="text-3xl font-extrabold text-slate-800">Kuis Selesai!</h3>
+                        <p class="text-slate-600 mt-1">Kamu telah menyelesaikan seluruh 10 soal evaluasi sesuai kisi-kisi.</p>
+                    </div>
+                    <div class="bg-purple-50 border-2 border-purple-200 rounded-2xl p-6 max-w-sm mx-auto">
+                        <span class="text-sm font-bold text-purple-800 block">Nilai Akhir Kamu:</span>
+                        <span id="quiz-final-score" class="text-5xl font-extrabold text-purple-600 my-2 block">100</span>
+                        <span id="quiz-final-predikat" class="text-xs font-bold bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full">Sangat Baik!</span>
+                    </div>
+                    <div class="flex flex-wrap justify-center gap-3 pt-2">
+                        <button onclick="restartQuiz()" class="btn-3d bg-purple-600 hover:bg-purple-700 border-purple-800 text-white font-bold px-6 py-3 rounded-xl">
+                            🔄 Ulangi Kuis
+                        </button>
+                        <button onclick="navigateTo('menu')" class="btn-3d bg-amber-500 hover:bg-amber-600 border-amber-700 text-white font-bold px-6 py-3 rounded-xl">
+                            🏠 Kembali ke Menu Utama
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-amber-100 border-t border-amber-200 py-4 px-4 text-center text-xs text-amber-900 mt-auto">
+        <strong>SIMBA PASAR</strong> • Media Pembelajaran Etnomatematika Kelas 5 SD (Bilangan Cacah s.d. 100.000)
+    </footer>
+
+    <!-- =========================================================
+         JAVASCRIPT LOGIKA LENGKAP & TERUJI
+    ========================================================= -->
+    <script>
+        // ---------------------------------------------------------
+        // 1. SISTEM AUDIO TERKALIBRASI (Revisi Poin 13)
+        // Menggunakan Web Audio / Tone.js + SpeechSynthesis dengan fallback nada & visual highlight
+        // ---------------------------------------------------------
+        function playClickSound() {
+            try {
+                if (typeof Tone !== 'undefined') {
+                    const synth = new Tone.Synth().toDestination();
+                    synth.triggerAttackRelease("C5", "32n");
+                }
+            } catch (e) {}
+        }
+
+        function playSuccessSound() {
+            try {
+                if (typeof Tone !== 'undefined') {
+                    const synth = new Tone.PolySynth().toDestination();
+                    synth.triggerAttackRelease(["C5", "E5", "G5"], "16n");
+                }
+            } catch (e) {}
+        }
+
+        function playErrorSound() {
+            try {
+                if (typeof Tone !== 'undefined') {
+                    const synth = new Tone.Synth().toDestination();
+                    synth.triggerAttackRelease("G3", "16n");
+                }
+            } catch (e) {}
+        }
+
+        // Fungsi pelafalan bilangan dengan pemenggalan suku kata + indikator visual
+        function speakNumber(numberValue, textLabel, btnElement) {
+            // Efek nada pembuka agar siswa tahu audio aktif meski di perangkat tanpa paket suara TTS
+            try {
+                if (typeof Tone !== 'undefined') {
+                    Tone.start();
+                    const synth = new Tone.Synth().toDestination();
+                    synth.triggerAttackRelease("E5", "16n");
+                }
+            } catch (e) {}
+
+            // Animasi visual tombol sedang berbunyi
+            if (btnElement) {
+                const origText = btnElement.innerHTML;
+                btnElement.innerHTML = "🔊 Melafalkan...";
+                btnElement.classList.add("ring-4", "ring-amber-300");
+                setTimeout(() => {
+                    btnElement.innerHTML = origText;
+                    btnElement.classList.remove("ring-4", "ring-amber-300");
+                }, 2200);
+            }
+
+            // Coba gunakan speechSynthesis bahasa Indonesia jika tersedia
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(textLabel);
+                utterance.lang = 'id-ID';
+                utterance.rate = 0.9;
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        // ---------------------------------------------------------
+        // 2. HELPER FORMAT RUPIAH & TERBILANG
+        // ---------------------------------------------------------
+        function formatRupiah(angka) {
+            return 'Rp' + angka.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+        }
+
+        function terbilang(n) {
+            if (n === 0) return "Nol rupiah";
+            const satuan = ["", "satu", "dua", "tiga", "empat", "lima", "enam", "tujuh", "delapan", "sembilan", "sepuluh", "sebelas"];
+            function konversi(x) {
+                if (x < 12) return satuan[x];
+                if (x < 20) return konversi(x - 10) + " belas";
+                if (x < 100) return konversi(Math.floor(x / 10)) + " puluh " + konversi(x % 10);
+                if (x < 200) return "seratus " + konversi(x - 100);
+                if (x < 1000) return konversi(Math.floor(x / 100)) + " ratus " + konversi(x % 100);
+                if (x < 2000) return "seribu " + konversi(x - 1000);
+                if (x < 1000000) return konversi(Math.floor(x / 1000)) + " ribu " + konversi(x % 1000);
+                return "";
+            }
+            let hasil = konversi(n).replace(/\s+/g, ' ').trim();
+            return hasil.charAt(0).toUpperCase() + hasil.slice(1) + " rupiah";
+        }
+
+        // ---------------------------------------------------------
+        // 3. NOTIFIKASI TOAST (Pengganti alert() - Revisi Poin 1)
+        // ---------------------------------------------------------
+        let toastTimeout;
+        function showToast(title, msg, type = 'error') {
+            const box = document.getElementById('toast-box');
+            const content = document.getElementById('toast-content');
+            const icon = document.getElementById('toast-icon');
+            document.getElementById('toast-title').textContent = title;
+            document.getElementById('toast-msg').textContent = msg;
+
+            content.className = "px-5 py-4 rounded-2xl shadow-2xl border-2 border-white flex items-start gap-3 text-white ";
+            if (type === 'error') {
+                content.classList.add('bg-rose-600');
+                icon.textContent = '🚫';
+                playErrorSound();
+            } else if (type === 'success') {
+                content.classList.add('bg-emerald-600');
+                icon.textContent = '🎉';
+                playSuccessSound();
+            } else {
+                content.classList.add('bg-amber-600');
+                icon.textContent = '💡';
+                playClickSound();
+            }
+
+            box.classList.remove('hidden');
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(hideToast, 4500);
+        }
+
+        function hideToast() {
+            document.getElementById('toast-box').classList.add('hidden');
+        }
+
+        // ---------------------------------------------------------
+        // 4. NAVIGASI HALAMAN NON-LINEAR (Revisi Poin 7 & 8)
+        // ---------------------------------------------------------
+        function startApp() {
+            playSuccessSound();
+            document.getElementById('view-splash').classList.add('hidden');
+            document.getElementById('main-header').classList.remove('hidden');
+            // Setelah layar pembuka, arahkan ke halaman Petunjuk Penggunaan & Tujuan Pembelajaran (Revisi Poin 7)
+            navigateTo('guide');
+        }
+
+        function navigateTo(viewName) {
+            playClickSound();
+            const views = ['splash', 'guide', 'menu', 'materi', 'kasir', 'kuis'];
+            views.forEach(v => {
+                const el = document.getElementById('view-' + v);
+                if (el) el.classList.add('hidden');
+            });
+            document.getElementById('view-' + viewName).classList.remove('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // ---------------------------------------------------------
+        // 5. LOGIKA MATERI & LATIHAN BERTAHAP (Revisi Poin 10 & 13)
+        // ---------------------------------------------------------
+        const contohBilanganData = [
+            { angka: 47850, teks: "Empat puluh tujuh ribu delapan ratus lima puluh rupiah", barang: "1 kg Daging Ayam Kampung" },
+            { angka: 95204, teks: "Sembilan puluh lima ribu dua ratus empat rupiah", barang: "1 Kodi Sapu Tangan Batik" },
+            { angka: 64500, teks: "Enam puluh empat ribu lima ratus rupiah", barang: "5 Liter Beras Pandan Wangi" },
+            { angka: 38750, teks: "Tiga puluh delapan ribu tujuh ratus lima puluh rupiah", barang: "1 kg Ikan Gurame Segar" }
+        ];
+
+        function initMateri() {
+            const container = document.getElementById('contoh-bilangan-container');
+            container.innerHTML = contohBilanganData.map(item => `
+                <div class="bg-white p-4 rounded-2xl border-2 border-amber-200 flex flex-col justify-between gap-3">
+                    <div>
+                        <span class="text-xs font-bold text-amber-700 bg-amber-100 px-2.5 py-0.5 rounded-full">${item.barang}</span>
+                        <div class="text-2xl font-extrabold text-slate-800 mt-2">${formatRupiah(item.angka)}</div>
+                        <p class="text-sm text-slate-600 italic mt-1">"${item.teks}"</p>
+                    </div>
+                    <button onclick="speakNumber(${item.angka}, '${item.teks}', this)" class="self-start bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition">
+                        🔊 Dengarkan Pelafalan
+                    </button>
+                </div>
+            `).join('');
+            showNilaiTempat(47850);
+        }
+
+        function showNilaiTempat(num) {
+            playClickSound();
+            const padded = num.toString().padStart(5, '0');
+            const labels = ["Puluh Ribuan", "Ribuan", "Ratusan", "Puluhan", "Satuan"];
+            const nilai = [
+                parseInt(padded[0]) * 10000,
+                parseInt(padded[1]) * 1000,
+                parseInt(padded[2]) * 100,
+                parseInt(padded[3]) * 10,
+                parseInt(padded[4]) * 1
+            ];
+            const colors = ["bg-rose-100 border-rose-300 text-rose-800", "bg-amber-100 border-amber-300 text-amber-800", "bg-emerald-100 border-emerald-300 text-emerald-800", "bg-sky-100 border-sky-300 text-sky-800", "bg-purple-100 border-purple-300 text-purple-800"];
+
+            const display = document.getElementById('nilai-tempat-display');
+            display.innerHTML = padded.split('').map((digit, idx) => `
+                <div class="p-3 rounded-2xl border-2 ${colors[idx]}">
+                    <span class="text-[10px] sm:text-xs font-bold block uppercase">${labels[idx]}</span>
+                    <span class="text-2xl sm:text-3xl font-extrabold block my-1">${digit}</span>
+                    <span class="text-xs font-bold block">(${formatRupiah(nilai[idx]).replace('Rp', '')})</span>
+                </div>
+            `).join('');
+        }
+
+        function switchMateriTab(tabId) {
+            playClickSound();
+            document.querySelectorAll('.materi-panel').forEach(p => p.classList.add('hidden'));
+            document.getElementById(tabId).classList.remove('hidden');
+
+            document.querySelectorAll('.materi-tab').forEach(b => {
+                b.className = "materi-tab px-4 py-2 rounded-xl font-bold text-sm bg-emerald-100 text-emerald-800 hover:bg-emerald-200";
+            });
+            const activeBtn = document.getElementById('btn-' + tabId);
+            activeBtn.className = "materi-tab px-4 py-2 rounded-xl font-bold text-sm bg-emerald-600 text-white";
+        }
+
+        function cekLatihanBertahap(nomor, kunci) {
+            const val = parseInt(document.getElementById(latihan${nomor}-input).value);
+            const fb = document.getElementById(latihan${nomor}-feedback);
+            if (val === kunci) {
+                fb.textContent = "✅ Tepat sekali! Lambang bilangannya adalah " + formatRupiah(kunci).replace('Rp', '');
+                fb.className = "text-xs font-bold mt-2 text-emerald-600";
+                playSuccessSound();
+            } else {
+                fb.textContent = "❌ Belum tepat. Perhatikan kembali nilai tempat puluh ribuan hingga satuannya!";
+                fb.className = "text-xs font-bold mt-2 text-rose-600";
+                playErrorSound();
+            }
+        }
+
+        // ---------------------------------------------------------
+        // 6. SIMULASI KASIR PASAR (Revisi Poin 1, 2, 5, 6, 9)
+        // ---------------------------------------------------------
+        // Semua produk bersatuan jelas (kg, liter, ikat, ekor, bungkus, lusin) + ilustrasi SVG (bukan emoji!)
+        const marketProducts = [
+            {
+                id: 'beras',
+                name: 'Beras Pandan',
+                unit: 'per 5 liter',
+                price: 62500,
+                svg: <svg viewBox="0 0 80 60" class="w-16 h-12 mx-auto"><path d="M20 15 Q40 8 60 15 L65 52 Q40 58 15 52 Z" fill="#FEF3C7" stroke="#D97706" stroke-width="2.5"/><path d="M22 18 Q40 24 58 18" fill="none" stroke="#D97706" stroke-width="2"/><text x="40" y="39" font-size="9" font-weight="bold" text-anchor="middle" fill="#92400E">BERAS</text></svg>
+            },
+            {
+                id: 'daging',
+                name: 'Daging Sapi',
+                unit: 'per 1/2 kg',
+                price: 58500,
+                svg: <svg viewBox="0 0 80 60" class="w-16 h-12 mx-auto"><path d="M18 32 Q20 14 45 16 Q66 18 64 36 Q60 50 35 48 Q16 46 18 32 Z" fill="#EF4444" stroke="#991B1B" stroke-width="2.5"/><circle cx="34" cy="30" r="5" fill="#FEE2E2"/><path d="M44 24 Q54 28 50 38" fill="none" stroke="#FCA5A5" stroke-width="2.5"/></svg>
+            },
+            {
+                id: 'ayam',
+                name: 'Ayam Potong',
+                unit: 'per ekor',
+                price: 36500,
+                svg: <svg viewBox="0 0 80 60" class="w-16 h-12 mx-auto"><ellipse cx="42" cy="33" rx="20" ry="14" fill="#FDBA74" stroke="#C2410C" stroke-width="2.5"/><circle cx="22" cy="24" r="7" fill="#FDBA74" stroke="#C2410C" stroke-width="2"/><polygon points="15,24 10,26 15,28" fill="#EAB308"/><path d="M20 17 Q22 12 25 17" fill="#DC2626"/></svg>
+            },
+            {
+                id: 'telur',
+                name: 'Telur Ayam',
+                unit: 'per kg',
+                price: 28500,
+                svg: <svg viewBox="0 0 80 60" class="w-16 h-12 mx-auto"><ellipse cx="32" cy="32" rx="11" ry="15" fill="#FDE68A" stroke="#B45309" stroke-width="2"/><ellipse cx="48" cy="34" rx="11" ry="15" fill="#FEF3C7" stroke="#B45309" stroke-width="2"/></svg>
+            },
+            {
+                id: 'ikan',
+                name: 'Ikan Nila Segar',
+                unit: 'per kg',
+                price: 32000,
+                svg: <svg viewBox="0 0 80 60" class="w-16 h-12 mx-auto"><path d="M15 30 Q35 12 60 30 Q35 48 15 30 Z" fill="#38BDF8" stroke="#0369A1" stroke-width="2.5"/><polygon points="60,30 72,20 72,40" fill="#0284C7"/><circle cx="25" cy="28" r="2.5" fill="#0F172A"/></svg>
+            },
+            {
+                id: 'kangkung',
+                name: 'Sayur Kangkung',
+                unit: 'per ikat',
+                price: 4500,
+                svg: <svg viewBox="0 0 80 60" class="w-16 h-12 mx-auto"><path d="M35 50 L25 18 M40 50 L40 14 M45 50 L55 18" stroke="#15803D" stroke-width="3" stroke-linecap="round"/><ellipse cx="25" cy="18" rx="6" ry="10" fill="#22C55E"/><ellipse cx="40" cy="14" rx="6" ry="10" fill="#16A34A"/><ellipse cx="55" cy="18" rx="6" ry="10" fill="#22C55E"/><rect x="33" y="38" width="14" height="4" fill="#D97706"/></svg>
+            },
+            {
+                id: 'tempe',
+                name: 'Tempe Kedelai',
+                unit: 'per bungkus',
+                price: 6500,
+                svg: <svg viewBox="0 0 80 60" class="w-16 h-12 mx-auto"><rect x="18" y="18" width="44" height="26" rx="4" fill="#FEF3C7" stroke="#B45309" stroke-width="2.5"/><circle cx="28" cy="28" r="2" fill="#D97706"/><circle cx="40" cy="34" r="2" fill="#D97706"/><circle cx="52" cy="27" r="2" fill="#D97706"/><line x1="18" y1="31" x2="62" y2="31" stroke="#16A34A" stroke-width="2"/></svg>
+            },
+            {
+                id: 'minyak',
+                name: 'Minyak Goreng',
+                unit: 'per liter',
+                price: 17500,
+                svg: <svg viewBox="0 0 80 60" class="w-16 h-12 mx-auto"><rect x="26" y="18" width="28" height="34" rx="5" fill="#FACC15" stroke="#CA8A04" stroke-width="2.5"/><rect x="34" y="10" width="12" height="8" fill="#DC2626"/><rect x="30" y="28" width="20" height="12" fill="#FEF9C3"/></svg>
+            },
+            {
+                id: 'gelas',
+                name: 'Gelas Plastik',
+                unit: 'per lusin (12 bh)',
+                price: 24000,
+                svg: <svg viewBox="0 0 80 60" class="w-16 h-12 mx-auto"><polygon points="22,16 38,16 35,48 25,48" fill="#BAE6FD" stroke="#0284C7" stroke-width="2"/><polygon points="42,16 58,16 55,48 45,48" fill="#E0F2FE" stroke="#0284C7" stroke-width="2"/></svg>
+            }
+        ];
+
+        let cart = [];
+        let bargainDiscount = 0;
+        let buyerCash = 0;
+        let buyerCashNotes = [];
+        let completedMissions = 0;
+
+        function initKasirCatalog() {
+            const grid = document.getElementById('catalog-grid');
+            grid.innerHTML = marketProducts.map(prod => `
+                <div onclick="addToCart('${prod.id}')" class="cursor-pointer bg-amber-50/60 hover:bg-amber-100 border-2 border-amber-200 hover:border-amber-500 rounded-2xl p-3 text-center transition flex flex-col justify-between">
+                    <div>
+                        <div class="mb-1.5">${prod.svg}</div>
+                        <h4 class="font-bold text-slate-800 text-sm leading-tight">${prod.name}</h4>
+                        <span class="inline-block text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full mt-1">${prod.unit}</span>
+                    </div>
+                    <div class="mt-2 pt-2 border-t border-amber-200/70 font-extrabold text-amber-800 text-sm">
+                        ${formatRupiah(prod.price)}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function getRawCartTotal() {
+            return cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+        }
+
+        function getFinalCartTotal() {
+            return Math.max(0, getRawCartTotal() - bargainDiscount);
+        }
+
+        // REVISI POIN 1: Batasi total belanja maksimal Rp99.999 (tolak barang yang melebihi batas dan beri pesan)
+        function addToCart(productId) {
+            const prod = marketProducts.find(p => p.id === productId);
+            if (!prod) return;
+
+            const currentTotal = getFinalCartTotal();
+            if (currentTotal + prod.price > 99999) {
+                showToast(
+                    "Batas Belanja Maksimal Rp99.999!",
+                    Menambah ${prod.name} (${formatRupiah(prod.price)}) akan membuat total belanja menjadi ${formatRupiah(currentTotal + prod.price)} (melebihi 5 digit / Rp99.999). Silakan pilih barang lain yang lebih murah atau selesaikan transaksi ini.,
+                    "error"
+                );
+                return;
+            }
+
+            playClickSound();
+            const existing = cart.find(i => i.id === productId);
+            if (existing) {
+                existing.qty += 1;
+            } else {
+                cart.push({ ...prod, qty: 1 });
+            }
+
+            // Reset diskon tawar menawar jika keranjang berubah
+            bargainDiscount = 0;
+            generateVariedBuyerCash(getFinalCartTotal());
+            renderCart();
+        }
+
+        function removeFromCart(productId) {
+            playClickSound();
+            const idx = cart.findIndex(i => i.id === productId);
+            if (idx > -1) {
+                if (cart[idx].qty > 1) {
+                    cart[idx].qty -= 1;
+                } else {
+                    cart.splice(idx, 1);
+                }
+            }
+            bargainDiscount = 0;
+            generateVariedBuyerCash(getFinalCartTotal());
+            renderCart();
+        }
+
+        function resetKasirCart() {
+            playClickSound();
+            cart = [];
+            bargainDiscount = 0;
+            buyerCash = 0;
+            buyerCashNotes = [];
+            ['nt-pr', 'nt-r', 'nt-rt', 'nt-p', 'nt-s', 'change-input'].forEach(id => {
+                document.getElementById(id).value = '';
+            });
+            renderCart();
+        }
+
+        // REVISI POIN 2: Fitur Tawar-Menawar Khas Pasar Tradisional
+        function applyBargain() {
+            const rawTotal = getRawCartTotal();
+            if (rawTotal < 10000) {
+                showToast("Belum Bisa Ditawar", "Belanja minimal Rp10.000 dulu ya untuk melakukan tawar-menawar dengan pedagang!", "info");
+                return;
+            }
+            if (bargainDiscount > 0) {
+                showToast("Sudah Ditawar", "Harga keranjang ini sudah mendapat potongan kesepakatan tawar-menawar!", "info");
+                return;
+            }
+
+            // Potongan tawar-menawar acak yang realistis (Rp1.000, Rp1.500, Rp2.000, atau Rp2.500)
+            const discounts = [1000, 1500, 2000, 2500];
+            bargainDiscount = discounts[Math.floor(Math.random() * discounts.length)];
+            
+            showToast(
+                "Tawar-Menawar Berhasil! 🤝",
+                Pedagang setuju memberi potongan harga sebesar ${formatRupiah(bargainDiscount)}!,
+                "success"
+            );
+            generateVariedBuyerCash(getFinalCartTotal());
+            renderCart();
+        }
+
+        // REVISI POIN 5 & 9: Variasikan Uang Pembeli (tidak melulu 20rb/50rb/100rb) & Tampilkan Visual Pecahan Rupiah Realistis
+        function generateVariedBuyerCash(total) {
+            if (total === 0) {
+                buyerCash = 0;
+         
